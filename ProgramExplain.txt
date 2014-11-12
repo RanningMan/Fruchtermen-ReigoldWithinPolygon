@@ -1,0 +1,99 @@
+
+This ReadMe file explains the implementation details for program that implements the Fruchtermen-Reigold algorithm in a given polygon.
+
+-----------------------------------------------The file contents include:-----------------------------------------------------
+
+1. The structure of the project and the function of each class and method;
+
+2. The psudo-code of main algorithm (which implemented in the FRPolygonLayout.java);
+
+3. More details in algorithm implementation.
+
+
+--------------------------------------------1. structure of the project-------------------------------------------------------
+There are 4 packages in the project.
+
+- window contains the main method and handles all of the Java swing GUI setup. It also contains the function which reads the graph from file (this could also have been implemented in the graph data structure itself). In addition, it contains the user parameters initialization.
+
+- graph contains the graph data structure (as an adjacency list) and most of the typical graph methods (add vertex, add edge etc). DefaultDirectedGraph is an implementation of the interface, undirected can also be later implemented if necessary.
+
+- layout determines how the graph will appear. FRLayout implements the general F-R algorithm and FRPolygonLayout implements the F-R algorithm in a polygon, which we will use in our large graph visualization project. In FRPolygonLayout.java, there includes a inner class called Polygon which inplements all the method related to a given polygon
+
+- Visualization does the actual drawing of the graph to the screen. It has a timer which can call a function in layout to update the position of the vertices (to have an animated effect). Right now the timer just assigns new random positions to the vertices.
+
+
+--------------------------------------------2. The psudo-code of main algorithm-----------------------------------------------
+
+	area :=  the area of input polygon
+	G :=  (V, E); {  the vertices are assigned random initial positions }
+	k := C * sqrt( area/ |V| )
+	itimes := 1 { parameter to control the attractive }
+	function  fa(z) :=  begin return   z2/(k / i)  end ;
+	function  fr(z) :=  begin return   k2/z  end ;
+	for  i  :=  1  to  iterations  do begin
+		{ calculate repulsive forces}
+		for  v  in  V  do  begin
+			{  each vertex has two vectors:  .pos  and  .disp  }
+			v.disp :=  0;
+			for  u  in  V  do
+				if  (u # v)  then begin
+					{  D  is short hand for the difference}
+					{ vector between the positions of the two vertices }
+					D  :=  v.pos  -  u.pos;
+					v.disp  :=  v.disp +  ( D /|  D |) *  fr (|  D |)
+				end
+			end
+
+		{ calculate attractive forces }
+		for  e in  E  do begin
+			{  each edge is an ordered pair of vertices  .v  and  .u  }
+			D  :=  e.v.pos – e.u.pos
+			e.v.disp :=  e.v.disp –  (  D/| D |) *  fa(|  D |);
+			e.u. disp :=  e.u.disp +  ( D /| D |) *  fa(|  D |);
+		end
+
+		{ limit the maximum displacement to the temperature  t  }
+		{ and then prevent from being displaced outside polygon }
+		{ the method of how to check and find the intersection and rebound position will be present in the 3rd part of this ReadMe file}
+		for  v  in  V  do begin
+			now.v.pos  := before.v.pos +  ( v. disp/ |v.disp|)  * min ( v.disp, t);
+			move := now.v.pos - before.v.pos
+			while( move intersect with edge of polygon ){
+				now.v.pos := rebound.v.pos; 
+				if( move intersect with edge of polygon )
+					itimes++;
+			}
+		end
+		
+		{ reduce the temperature as the layout approaches a better configuration }
+		t  :=  cool(t)
+	end
+
+
+--------------------------------------------3. More details in algorithm implementation.-----------------------------------------------
+
+How to get the area of polygon:
+1) make the perpendicular line from each point on the x-axis to get several keystone;
+2) calculate the area of all the keystones using following fomula: area = (x1 - x2) * (y1 + y2) / 2;
+3) add all the areas.
+
+
+How to get the intersection:
+1) get the intersection points P(ai, bi) of all the edges AiAi+1, where Ai(xi,yi),Ai+1(xi+1,yi+1) of polygon and vector move CD, where C(cx, cy), D(dx,dy);
+2) check wether each intersection P(ai, bi) is in the quadrilateral which consisted by vertices of vector move CD and edge AiAi+1, to do this we check following four inequility:
+	(ai - cx) * (ai - dx) <= 0;
+	(ai - xi) * (ai - xi+1) <= 0;
+	(bi - cy) * (bi - dy) <= 0;
+	(bi - yi) * (bi - yi+1) <= 0;
+   if all the above inquality hold, then P is in the quadrilateral;
+3) return P as the intersection point;
+
+
+How to get positions after rebound
+1)The rebound function follows the rule of elastic collision, use following function to get the new position when there is a intersection point
+	x = (x0 * (x2 - x1) * (x2 - x1) + 2 * (y0 - y1) * (x2 - x1) * (y2 - y1) - (y2 - y1) * (y2 - y1) * (x0 - 2 * x1))
+				/ ((y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1));
+	y = (y2 == y1) ? (2 * y1 - y0) :((x2 - x1) * (x0 - x) / (y2 - y1) + y0); 
+  where (x0, y0) is the previous position of nodes, (x1,y1) and (x2, y2) are coordinates of vertices of edge that the move vector intersect with.
+2) This function can be found by solving a set of linear equations.
+ 
